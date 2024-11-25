@@ -1,9 +1,25 @@
 package com.example.blindchatting.shared.routing
 
-sealed class AppRoutes(val route: String) {
-    object Contacts : AppRoutes("contacts")
-    object ChatList : AppRoutes("chat-list")
-    object Chat : AppRoutes("chat")
-    object Login : AppRoutes("login")
-    object Register : AppRoutes("register")
+import kotlinx.serialization.Serializable
+
+sealed interface Route {
+    sealed interface Auth {
+        @Serializable
+        data object Login : Auth
+        @Serializable
+        data object Register : Auth
+    }
+
+    sealed interface Messenger {
+        @Serializable
+        data object Settings : Messenger
+        @Serializable
+        data object Contacts : Messenger
+        @Serializable
+        data object Chatlist : Messenger
+        @Serializable
+        data class Chat(
+            val chatId: Int
+        ) : Messenger
+    }
 }

@@ -1,8 +1,10 @@
 package com.example.blindchatting.features.auth.login
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.blindchatting.shared.api.lib.TokenManager
+import com.example.blindchatting.shared.api.services.EptaChatApi
 import com.example.blindchatting.shared.api.services.auth.AuthService
 import com.example.blindchatting.shared.api.services.auth.LoginRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +19,7 @@ sealed class LoginState {
 }
 
 class LoginViewModel(
-    private val authService: AuthService,
+    private val eptaChatApi: EptaChatApi,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -26,22 +28,30 @@ class LoginViewModel(
 
     fun login(username: String, password: String) {
         _authState.value = LoginState.Loading
+        Log.d("LoginViewModel", "Attempting to log in with username: $username")
 
         viewModelScope.launch {
             try {
-                val response = authService.login(LoginRequest(username, password))
+                val response = eptaChatApi.authService.login(LoginRequest(username, password))
+                Log.d("LoginViewModel", "Response received: ${response.body()}")
+
+                val userId = response.body()?.UserId
                 val accessToken = response.body()?.Token?.AccessToken
                 val refreshToken = response.body()?.Token?.RefreshToken
 
-                if (!accessToken.isNullOrEmpty() && !refreshToken.isNullOrEmpty()) {
-                    tokenManager.saveTokenPair(accessToken, refreshToken)
+                if (!accessToken.isNullOrEmpty() && !refreshToken.isNullOrEmpty() && userId != null) {
+                    tokenManager.saveUserId(userId)
+                    tokenManager.saveAccessToken(accessToken)
+                    tokenManager.saveRefreshToken(refreshToken)
+
                     _authState.value = LoginState.Success
                 } else {
                     _authState.value = LoginState.Error("Ошибка авторизации")
                 }
 
             } catch (e: Exception) {
-                _authState.value = LoginState.Error("Ошибка авторизации: ${e.message}")
+                Log.e("LoginViewModel", "Error during login: ${e.message}", e)
+                _authState.value = LoginState.Error("Произошла ошибка: ${e.message}")
             }
         }
     }

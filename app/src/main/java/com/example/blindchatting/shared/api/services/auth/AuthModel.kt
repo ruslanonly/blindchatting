@@ -1,7 +1,7 @@
 package com.example.blindchatting.shared.api.services.auth
 
 data class LoginRequest(
-    val username: String,
+    val login: String,
     val password: String
 )
 
@@ -16,11 +16,19 @@ data class LoginResponse(
 )
 
 data class RegisterRequest(
-    val username: String,
+    val login: String,
     val password: String
 )
 
 data class RefreshTokensRequest(
     val token: String,
-    val userId: Number
+    val user_id: Int
 )
+
+data class RefreshTokensResponse(
+    val access_token: String,
+)
+
+data class SetUsernameRequest (
+    val username: String
+);

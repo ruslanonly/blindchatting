@@ -11,16 +11,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.blindchatting.shared.routing.AppRoutes
-import com.example.blindchatting.shared.routing.LocalAppNavigator
+import com.example.blindchatting.shared.ui.Header
 import org.koin.androidx.compose.getViewModel
 
 @Composable
-fun LoginScreen(viewModel: LoginViewModel = getViewModel()) {
-    val navController = LocalAppNavigator.current;
-
+fun LoginScreen(
+    onGoToRegister: () -> Unit,
+    onLoginSuccess: () -> Unit,
+    viewModel: LoginViewModel = getViewModel()
+) {
     val uiState by viewModel.authState.collectAsState()
-    var email by remember { mutableStateOf("") }
+    var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     val context = LocalContext.current
@@ -28,16 +29,19 @@ fun LoginScreen(viewModel: LoginViewModel = getViewModel()) {
     LaunchedEffect(uiState) {
         when (uiState) {
             is LoginState.Success -> {
-                navController.navigate(AppRoutes.ChatList.route)
+                onLoginSuccess()
+                Toast.makeText(context, "You've signed in an account", Toast.LENGTH_SHORT).show()
             }
             is LoginState.Error -> {
-                Toast.makeText(context, "Sign In failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Login failed: ${uiState.toString()}", Toast.LENGTH_SHORT).show()
             }
             else -> {}
         }
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+    ) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -47,11 +51,13 @@ fun LoginScreen(viewModel: LoginViewModel = getViewModel()) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Header(text = "Login")
+
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = login,
+                onValueChange = { login = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "Email") }
+                label = { Text(text = "Login") }
             )
             OutlinedTextField(
                 value = password,
@@ -62,20 +68,29 @@ fun LoginScreen(viewModel: LoginViewModel = getViewModel()) {
             )
             Spacer(modifier = Modifier.size(16.dp))
 
-            if (uiState == LoginState.Loading) {
-                CircularProgressIndicator()
-            } else {
-                Button(
-                    onClick = { viewModel.login(email, password) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = email.isNotEmpty() && password.isNotEmpty() && (uiState == LoginState.Nothing)
-                ) {
-                    Text(text = "Sign In")
+            Button(
+                onClick = { viewModel.login(login, password) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = (
+                    login.isNotEmpty() &&
+                    password.isNotEmpty() &&
+                    uiState != LoginState.Loading)
+            ) {
+                if (uiState != LoginState.Loading) {
+                    Text(text = "Login", color = Color.White)
+                } else {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
+            }
 
-                TextButton(onClick = { navController.navigate(AppRoutes.Register.route) }) {
-                    Text(text = "Don't have an account? Register")
-                }
+            TextButton(
+                onClick = { onGoToRegister() },
+                enabled = uiState != LoginState.Loading
+            ) {
+                Text(text = "Don't have an account? Register")
             }
         }
     }

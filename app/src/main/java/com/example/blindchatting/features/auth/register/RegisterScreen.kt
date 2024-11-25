@@ -11,27 +11,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.blindchatting.shared.routing.AppRoutes
-import com.example.blindchatting.shared.routing.LocalAppNavigator
+import com.example.blindchatting.shared.ui.Header
 import org.koin.androidx.compose.getViewModel
 
 @Composable
-fun RegisterScreen(viewModel: RegisterViewModel = getViewModel()) {
-    val navController = LocalAppNavigator.current;
-
+fun RegisterScreen(
+    onRegisterSuccess: () -> Unit,
+    onGoToLogin: () -> Unit,
+    viewModel: RegisterViewModel = getViewModel()
+) {
     val uiState by viewModel.authState.collectAsState()
-    var email by remember { mutableStateOf("") }
+    var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
 
     val context = LocalContext.current
 
     LaunchedEffect(uiState) {
         when (uiState) {
             is RegisterState.Success -> {
-                navController.navigate(AppRoutes.Login.route)
+                onRegisterSuccess()
+                Toast.makeText(context, "You've registered an account", Toast.LENGTH_SHORT).show()
             }
             is RegisterState.Error -> {
-                Toast.makeText(context, "Register failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Register failed: ${uiState.toString()}", Toast.LENGTH_LONG).show()
             }
             else -> {}
         }
@@ -47,41 +50,57 @@ fun RegisterScreen(viewModel: RegisterViewModel = getViewModel()) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Header(text = "Create a new account")
+
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = login,
+                onValueChange = { login = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "Email") }
+                label = { Text(text = "Login") }
             )
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "Email") }
-            )
+
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "Password") },
+                label = { Text(text = "Password") }
+            )
+
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(text = "Confirm password") },
                 visualTransformation = PasswordVisualTransformation()
             )
+
             Spacer(modifier = Modifier.size(16.dp))
 
-            if (uiState == RegisterState.Loading) {
-                CircularProgressIndicator()
-            } else {
-                Button(
-                    onClick = { viewModel.register(email, password) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = email.isNotEmpty() && password.isNotEmpty() && (uiState == RegisterState.Nothing)
-                ) {
-                    Text(text = "Login")
+            Button(
+                onClick = { viewModel.register(login, password) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = (
+                    uiState != RegisterState.Loading &&
+                    login.isNotEmpty() &&
+                    password.isNotEmpty() &&
+                    password == confirmPassword
+                )
+            ) {
+                if (uiState != RegisterState.Loading) {
+                    Text(text = "Register", color = Color.White)
+                } else {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
+            }
 
-                TextButton(onClick = { navController.navigate(AppRoutes.Login.route) }) {
-                    Text(text = "Do you have an account? Login")
-                }
+            TextButton(
+                onClick = { onGoToLogin() },
+                enabled = uiState != RegisterState.Loading
+            ) {
+                Text(text = "Do you have an account? Login")
             }
         }
     }

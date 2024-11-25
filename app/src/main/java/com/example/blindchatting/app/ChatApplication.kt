@@ -1,4 +1,4 @@
-package com.example.blindchatting
+package com.example.blindchatting.app
 
 import android.app.Application
 import org.koin.android.ext.koin.androidContext
