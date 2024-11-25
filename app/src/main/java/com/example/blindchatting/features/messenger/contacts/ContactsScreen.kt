@@ -37,6 +37,7 @@ fun ContactsScreen(
     navController: NavController,
     contactsViewModel: ContactsViewModel = koinViewModel(),
     createContactViewModel: CreateContactViewModel = koinViewModel(),
+    deleteContactViewModel: DeleteContactViewModel = koinViewModel()
 ) {
     var showCreateContactModal by remember { mutableStateOf(false) }
 
@@ -49,6 +50,23 @@ fun ContactsScreen(
     val createContactState by createContactViewModel.createContactQuery.collectAsState()
     val contacts by contactsViewModel.contacts.collectAsState()
     val contactsQueryState by contactsViewModel.contactsQuery.collectAsState()
+    val deletingContacts by deleteContactViewModel.deletingContacts.collectAsState()
+    val deleteContactState by deleteContactViewModel.deleteContactState.collectAsState()
+
+    LaunchedEffect(deleteContactState) {
+        when (deleteContactState) {
+            is DeleteContactState.Success -> {
+                Toast.makeText(context, "You've deleted a contact", Toast.LENGTH_SHORT).show()
+                Log.d("Hello", deleteContactState.toString())
+                contactsViewModel.getAll()
+            }
+            is DeleteContactState.Error -> {
+                val message = (deleteContactState as DeleteContactState.Error).message
+                Toast.makeText(context, "Error while deleting a contact: $message", Toast.LENGTH_LONG).show()
+            }
+            else -> {}
+        }
+    }
 
     LaunchedEffect(createContactState) {
         when (createContactState) {
@@ -107,8 +125,9 @@ fun ContactsScreen(
                             items(contacts) { contact ->
                                 Contact(
                                     contact = contact,
-                                    onDelete = { contactsViewModel.getAll() },
+                                    onDelete = { deleteContactViewModel.deleteContact(contact.ID) },
                                     onCreateChat = {},
+                                    isLoading = deletingContacts.contains(contact.ID),
                                 )
 
                                 HorizontalDivider()
@@ -143,29 +162,11 @@ fun ContactsScreen(
 
 @Composable
 fun Contact(
+    isLoading: Boolean,
     contact: UserInfo,
     onCreateChat: () -> Unit,
     onDelete: () -> Unit,
-    deleteContactViewModel: DeleteContactViewModel = koinViewModel(),
 ) {
-    val context = LocalContext.current
-    val deleteContactState by deleteContactViewModel.deleteContactState.collectAsState()
-
-    LaunchedEffect(deleteContactState) {
-        when (deleteContactState) {
-            is DeleteContactState.Success -> {
-                Toast.makeText(context, "You've deleted a contact", Toast.LENGTH_SHORT).show()
-                Log.d("Hello", deleteContactState.toString())
-                onDelete()
-            }
-            is DeleteContactState.Error -> {
-                val message = (deleteContactState as DeleteContactState.Error).message
-                Toast.makeText(context, "Error while deleting a contact: $message", Toast.LENGTH_LONG).show()
-            }
-            else -> {}
-        }
-    }
-
     ListItem(
         headlineContent = { Text(contact.Login) },
         supportingContent = { Text(contact.UserName) },
@@ -180,11 +181,12 @@ fun Contact(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                IconButton(onClick = {
-                    deleteContactViewModel.deleteContact(contact.ID)
-                }) {
-                    if (deleteContactState == DeleteContactState.Loading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                IconButton(onClick = { onDelete() }) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 3.dp
+                        )
                     } else {
                         Icon(
                             imageVector = Icons.Outlined.DeleteOutline,

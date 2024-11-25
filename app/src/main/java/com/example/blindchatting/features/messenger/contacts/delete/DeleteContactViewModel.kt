@@ -18,15 +18,19 @@ sealed class DeleteContactState {
 class DeleteContactViewModel(
     private val eptaChatApi: EptaChatApi
 ) : ViewModel() {
+    private val _deletingContacts = MutableStateFlow<List<Int>>(emptyList())
     private val _deleteContactState = MutableStateFlow<DeleteContactState>(DeleteContactState.Idle)
 
     val deleteContactState: StateFlow<DeleteContactState> get() = _deleteContactState
+    val deletingContacts: StateFlow<List<Int>> get() = _deletingContacts
 
     fun deleteContact(id: Int) {
         _deleteContactState.value = DeleteContactState.Loading
 
         viewModelScope.launch {
             try {
+                _deletingContacts.value = deletingContacts.value.plus(id)
+
                 val response = eptaChatApi.contactsService.delete(id)
                 Log.d("DeleteContactViewModel", "Response received: ${response}")
 
@@ -35,6 +39,12 @@ class DeleteContactViewModel(
                 } else {
                     _deleteContactState.value =
                         DeleteContactState.Error("The contact with ID $id weren't deleted!")
+                }
+
+                val deletingContactIndex = deletingContacts.value.plus(id).find { contact -> contact == id }
+                if (deletingContactIndex != null) {
+                    _deletingContacts.value = _deletingContacts.value.drop(id)
+
                 }
             } catch (e: Exception) {
                 Log.e("DeleteContactViewModel", "Error during deleting contact: ${e.message}", e)
