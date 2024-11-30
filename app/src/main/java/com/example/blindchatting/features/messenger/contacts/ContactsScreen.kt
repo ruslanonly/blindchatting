@@ -17,9 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.blindchatting.features.messenger.chats.create.CreateChatQueryState
+import com.example.blindchatting.features.messenger.chats.create.CreateChatViewModel
 import com.example.blindchatting.features.messenger.contacts.all.ContactsQueryState
 import com.example.blindchatting.features.messenger.contacts.all.ContactsViewModel
-import com.example.blindchatting.features.messenger.contacts.all.components.ContactItem
 import com.example.blindchatting.features.messenger.contacts.create.CreateContactModal
 import com.example.blindchatting.features.messenger.contacts.create.CreateContactQueryState
 import com.example.blindchatting.features.messenger.contacts.create.CreateContactViewModel
@@ -37,6 +38,7 @@ fun ContactsScreen(
     navController: NavController,
     contactsViewModel: ContactsViewModel = koinViewModel(),
     createContactViewModel: CreateContactViewModel = koinViewModel(),
+    createChatViewModel: CreateChatViewModel = koinViewModel(),
     deleteContactViewModel: DeleteContactViewModel = koinViewModel()
 ) {
     var showCreateContactModal by remember { mutableStateOf(false) }
@@ -48,6 +50,7 @@ fun ContactsScreen(
     }
 
     val createContactState by createContactViewModel.createContactQuery.collectAsState()
+    val createChatState by createChatViewModel.createChatQuery.collectAsState()
     val contacts by contactsViewModel.contacts.collectAsState()
     val contactsQueryState by contactsViewModel.contactsQuery.collectAsState()
     val deletingContacts by deleteContactViewModel.deletingContacts.collectAsState()
@@ -63,6 +66,19 @@ fun ContactsScreen(
             is DeleteContactState.Error -> {
                 val message = (deleteContactState as DeleteContactState.Error).message
                 Toast.makeText(context, "Error while deleting a contact: $message", Toast.LENGTH_LONG).show()
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(createChatState) {
+        when (createChatState) {
+            is CreateChatQueryState.Success -> {
+                Toast.makeText(context, "You've created a chat", Toast.LENGTH_SHORT).show()
+            }
+            is CreateChatQueryState.Error -> {
+                val message = (createChatState as CreateChatQueryState.Error).message
+                Toast.makeText(context, "Error while creating a chat: $message", Toast.LENGTH_LONG).show()
             }
             else -> {}
         }
@@ -126,8 +142,13 @@ fun ContactsScreen(
                                 Contact(
                                     contact = contact,
                                     onDelete = { deleteContactViewModel.deleteContact(contact.ID) },
-                                    onCreateChat = {},
-                                    isLoading = deletingContacts.contains(contact.ID),
+                                    onCreateChat = { createChatViewModel.createChat(
+                                        chatName = "Chat with ${contact.UserName}",
+                                        isDirect = true,
+                                        members = listOf(contact.ID)
+                                    ) },
+                                    isCreatingChat = createChatState == CreateChatQueryState.Loading,
+                                    isDeleting = deletingContacts.contains(contact.ID),
                                 )
 
                                 HorizontalDivider()
@@ -162,7 +183,8 @@ fun ContactsScreen(
 
 @Composable
 fun Contact(
-    isLoading: Boolean,
+    isCreatingChat: Boolean,
+    isDeleting: Boolean,
     contact: UserInfo,
     onCreateChat: () -> Unit,
     onDelete: () -> Unit,
@@ -173,16 +195,19 @@ fun Contact(
         leadingContent = { Avatar(text = contact.Login, size = 54.dp) },
         trailingContent = {
             Row {
-                IconButton(onClick = { onCreateChat() }) {
+                IconButton(
+                    onClick = onCreateChat,
+                    enabled = !isCreatingChat
+                ) {
                     Icon(
                         imageVector = Icons.Outlined.ChatBubbleOutline,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = if (isCreatingChat) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                IconButton(onClick = { onDelete() }) {
-                    if (isLoading) {
+                IconButton(onClick = onDelete) {
+                    if (isDeleting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 3.dp

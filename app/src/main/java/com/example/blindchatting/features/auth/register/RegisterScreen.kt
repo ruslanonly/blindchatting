@@ -63,7 +63,8 @@ fun RegisterScreen(
                 value = password,
                 onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "Password") }
+                label = { Text(text = "Password") },
+                visualTransformation = PasswordVisualTransformation()
             )
 
             OutlinedTextField(

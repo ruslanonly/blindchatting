@@ -4,6 +4,10 @@ import com.example.blindchatting.features.auth.AuthViewModel
 import com.example.blindchatting.features.auth.login.LoginViewModel
 import com.example.blindchatting.features.auth.logout.LogoutViewModel
 import com.example.blindchatting.features.auth.register.RegisterViewModel
+import com.example.blindchatting.features.messenger.chat.ChatViewModel
+import com.example.blindchatting.features.messenger.chat.ui.add_member.AddChatMembersViewModel
+import com.example.blindchatting.features.messenger.chats.all.ChatsViewModel
+import com.example.blindchatting.features.messenger.chats.create.CreateChatViewModel
 import com.example.blindchatting.features.messenger.contacts.all.ContactsViewModel
 import com.example.blindchatting.features.messenger.contacts.create.CreateContactViewModel
 import com.example.blindchatting.features.messenger.contacts.delete.DeleteContactViewModel
@@ -27,4 +31,8 @@ val AppModule = module {
     viewModel { DeleteContactViewModel(get()) }
     viewModel { GetContactViewModel(get()) }
     viewModel { SetUsernameViewModel(get()) }
+    viewModel { ChatsViewModel(get()) }
+    viewModel { AddChatMembersViewModel(get()) }
+    viewModel { CreateChatViewModel(get()) }
+    viewModel { ChatViewModel(get()) }
 }

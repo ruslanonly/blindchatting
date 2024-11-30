@@ -4,8 +4,8 @@ data class CreateContactRequest(
     val contact_login: String,
 )
 
-data class UserInfo(
-    val ID: Int,
-    val Login: String,
-    val UserName: String
+open class UserInfo(
+    open val ID: Int,
+    open val Login: String,
+    open val UserName: String
 )

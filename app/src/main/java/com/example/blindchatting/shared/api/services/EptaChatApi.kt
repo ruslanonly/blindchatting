@@ -4,6 +4,7 @@ import com.example.blindchatting.shared.api.lib.TokenManager
 import com.example.blindchatting.shared.api.services.auth.AuthService
 import com.example.blindchatting.shared.api.services.auth.ContactsService
 import com.example.blindchatting.shared.api.services.auth.RefreshTokensRequest
+import com.example.blindchatting.shared.api.services.chats.ChatsService
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -81,5 +82,9 @@ class EptaChatApi(private val tokenManager: TokenManager) {
 
     val contactsService: ContactsService by lazy {
         retrofit.create(ContactsService::class.java)
+    }
+
+    val chatsService: ChatsService by lazy {
+        retrofit.create(ChatsService::class.java)
     }
 }
