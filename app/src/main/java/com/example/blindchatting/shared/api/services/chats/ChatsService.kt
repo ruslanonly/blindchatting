@@ -17,16 +17,16 @@ interface ChatsService {
     suspend fun addChatMembers(@Body addChatMembersRequest: AddChatMembersRequest): Response<Unit>
 
     @GET("chat/all")
-    suspend fun getAll(): Response<Array<Chat>>
+    suspend fun getAll(): Response<List<Chat>>
 
     @GET("chat/members/{id}")
-    suspend fun getChatMembers(@Path("id") id: Int): Response<Array<UserInfo>>
+    suspend fun getChatMembers(@Path("id") id: Int): Response<List<UserInfo>>
 
-    @GET("chat/members/{id}")
+    @GET("chat/messages")
     suspend fun getChatMessages(
         @Query("chat-id") chatId: Int,
         @Query("page-id") pageIndex: Int)
-    : Response<Array<MessageInfo>>
+    : Response<List<Message>>
 
     @GET("chat/{id}")
     suspend fun getChat(@Path("id") id: Int): Response<Chat>

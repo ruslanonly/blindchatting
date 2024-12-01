@@ -4,6 +4,8 @@ import com.example.blindchatting.shared.api.lib.TokenManager
 import com.example.blindchatting.shared.api.services.auth.AuthService
 import com.example.blindchatting.shared.api.services.auth.ContactsService
 import com.example.blindchatting.shared.api.services.auth.RefreshTokensRequest
+import com.example.blindchatting.shared.api.services.chat.ChatService
+import com.example.blindchatting.shared.api.services.chat.ChatServiceImpl
 import com.example.blindchatting.shared.api.services.chats.ChatsService
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -62,6 +64,7 @@ class AuthInterceptor(
 }
 
 class EptaChatApi(private val tokenManager: TokenManager) {
+    private val baseUrl: String = "193.124.33.25:8080/api/v1/"
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(tokenManager, this))
@@ -70,7 +73,7 @@ class EptaChatApi(private val tokenManager: TokenManager) {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl("http://193.124.33.25:8080/api/v1/")
+            .baseUrl("http://$baseUrl")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -86,5 +89,9 @@ class EptaChatApi(private val tokenManager: TokenManager) {
 
     val chatsService: ChatsService by lazy {
         retrofit.create(ChatsService::class.java)
+    }
+
+    val chatService: ChatService by lazy {
+        ChatServiceImpl(client, "ws://$baseUrl")
     }
 }

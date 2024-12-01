@@ -5,6 +5,7 @@ import com.example.blindchatting.features.auth.login.LoginViewModel
 import com.example.blindchatting.features.auth.logout.LogoutViewModel
 import com.example.blindchatting.features.auth.register.RegisterViewModel
 import com.example.blindchatting.features.messenger.chat.ChatViewModel
+import com.example.blindchatting.features.messenger.chat.lib.MessageUIMapper
 import com.example.blindchatting.features.messenger.chat.ui.add_member.AddChatMembersViewModel
 import com.example.blindchatting.features.messenger.chats.all.ChatsViewModel
 import com.example.blindchatting.features.messenger.chats.create.CreateChatViewModel
@@ -22,6 +23,7 @@ import org.koin.dsl.module
 val AppModule = module {
     single { TokenManager(androidContext()) }
     single { EptaChatApi(get()) }
+    single { MessageUIMapper(get()) }
     viewModel { LoginViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { LogoutViewModel(get()) }
@@ -34,5 +36,5 @@ val AppModule = module {
     viewModel { ChatsViewModel(get()) }
     viewModel { AddChatMembersViewModel(get()) }
     viewModel { CreateChatViewModel(get()) }
-    viewModel { ChatViewModel(get()) }
+    viewModel { ChatViewModel(get(), get()) }
 }

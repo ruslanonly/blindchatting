@@ -22,7 +22,7 @@ class TokenManager(private val context: Context) {
     }
 
     fun getUserId(): Int {
-        return sharedPreferences.getInt(userIdName, 0)
+        return sharedPreferences.getInt(userIdName, -1)
     }
 
     fun getAccessToken(): String? {

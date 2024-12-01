@@ -30,11 +30,24 @@ data class Chat(
     val OwnerId: Int
 )
 
-data class MessageInfo(
-    val chatId: Int,
-    val id: Int,
-    val senderId: Int,
-    val sendingTime: String,
+open class Message(
+    open val ChatId: Int,
+    open val ID: Int,
+    open val SenderId: Int,
+    open val SendingTime: String,
+    open val Text: String,
+    open val UserName: String
+)
+
+open class ChatConnectionMessage(
+    open val chatId: Int,
+    open val id: Int,
+    open val senderId: Int,
+    open val sendingTime: String,
+    open val text: String,
+    open val userName: String
+)
+
+data class MakeMessage(
     val text: String,
-    val userName: String
 )
