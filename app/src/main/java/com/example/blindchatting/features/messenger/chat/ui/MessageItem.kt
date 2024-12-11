@@ -20,16 +20,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.blindchatting.features.messenger.chat.model.MessageUI
 import com.example.blindchatting.shared.ui.Avatar
-
 @Composable
 fun MessageItem(message: MessageUI, modifier: Modifier = Modifier) {
-    val userName = if (message.UserName.isBlank()) "Нет имени" else message.UserName
+    val userName = resolveUserName(message.UserName)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(4.dp),
-        horizontalArrangement = if (message.isFromMe) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = resolveHorizontalArrangement(message.isFromMe),
         verticalAlignment = Alignment.Bottom
     ) {
         if (!message.isFromMe) {
@@ -39,60 +38,95 @@ fun MessageItem(message: MessageUI, modifier: Modifier = Modifier) {
             )
         }
 
-        val bubbleShape = if (message.isFromMe) {
-            RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = 16.dp,
-                bottomEnd = 0.dp
-            )
-        } else {
-            RoundedCornerShape(
-                topStart = 0.dp,
-                topEnd = 16.dp,
-                bottomStart = 16.dp,
-                bottomEnd = 16.dp
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .padding(
-                    start = if (message.isFromMe) 0.dp else 4.dp,
-                    end = if (message.isFromMe) 4.dp else 0.dp
-                )
-                .clip(bubbleShape)
-                .background(
-                    if (message.isFromMe) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.inversePrimary
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .widthIn(min = 70.dp, max = 280.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            if (!message.isFromMe) {
-                Text(
-                    text = userName,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(bottom = 1.dp),
-                    lineHeight = 2.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Text(
-                text = message.Text,
-                color = if (message.isFromMe) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 1.dp)
-            )
-            Text(
-                text = message.time,
-                fontSize = 12.sp,
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.End),
-                lineHeight = 1.sp
-            )
-        }
+        MessageBubble(
+            message = message,
+            userName = userName,
+            isFromMe = message.isFromMe
+        )
     }
+}
+
+@Composable
+private fun resolveUserName(userName: String): String =
+    if (userName.isBlank()) "Нет имени" else userName
+
+@Composable
+private fun resolveHorizontalArrangement(isFromMe: Boolean): Arrangement.Horizontal =
+    if (isFromMe) Arrangement.End else Arrangement.Start
+
+@Composable
+private fun MessageBubble(message: MessageUI, userName: String, isFromMe: Boolean) {
+    val bubbleShape = resolveBubbleShape(isFromMe)
+
+    Column(
+        modifier = Modifier
+            .padding(
+                start = if (isFromMe) 0.dp else 4.dp,
+                end = if (isFromMe) 4.dp else 0.dp
+            )
+            .clip(bubbleShape)
+            .background(
+                if (isFromMe) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.inversePrimary
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .widthIn(min = 70.dp, max = 280.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        if (!isFromMe) {
+            DisplayUserName(userName)
+        }
+        DisplayMessageContent(message.Text, isFromMe)
+        DisplayTimestamp(message.time)
+    }
+}
+
+@Composable
+private fun resolveBubbleShape(isFromMe: Boolean): RoundedCornerShape =
+    if (isFromMe) {
+        RoundedCornerShape(
+            topStart = 16.dp,
+            topEnd = 16.dp,
+            bottomStart = 16.dp,
+            bottomEnd = 0.dp
+        )
+    } else {
+        RoundedCornerShape(
+            topStart = 0.dp,
+            topEnd = 16.dp,
+            bottomStart = 16.dp,
+            bottomEnd = 16.dp
+        )
+    }
+
+@Composable
+private fun DisplayUserName(userName: String) {
+    Text(
+        text = userName,
+        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = Modifier.padding(bottom = 1.dp),
+        lineHeight = 2.sp,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
+@Composable
+private fun DisplayMessageContent(messageText: String, isFromMe: Boolean) {
+    Text(
+        text = messageText,
+        color = if (isFromMe) MaterialTheme.colorScheme.onPrimary
+        else MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(bottom = 1.dp)
+    )
+}
+
+@Composable
+private fun DisplayTimestamp(timestamp: String) {
+    Text(
+        text = timestamp,
+        fontSize = 12.sp,
+        color = Color.Gray,
+        lineHeight = 1.sp
+    )
 }

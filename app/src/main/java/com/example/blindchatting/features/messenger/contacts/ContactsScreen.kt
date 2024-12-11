@@ -1,5 +1,6 @@
 package com.example.blindchatting.features.messenger.contacts
 
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -32,7 +33,6 @@ import com.example.blindchatting.shared.ui.Placeholder
 import com.example.blindchatting.shared.ui.layout.NavBar
 import com.example.blindchatting.shared.ui.layout.NavBarItem
 import org.koin.androidx.compose.koinViewModel
-
 @Composable
 fun ContactsScreen(
     navController: NavController,
@@ -42,13 +42,9 @@ fun ContactsScreen(
     deleteContactViewModel: DeleteContactViewModel = koinViewModel()
 ) {
     var showCreateContactModal by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        contactsViewModel.getAll()
-    }
-
+    // Observing ViewModel states
     val createContactState by createContactViewModel.createContactQuery.collectAsState()
     val createChatState by createChatViewModel.createChatQuery.collectAsState()
     val contacts by contactsViewModel.contacts.collectAsState()
@@ -56,56 +52,14 @@ fun ContactsScreen(
     val deletingContacts by deleteContactViewModel.deletingContacts.collectAsState()
     val deleteContactState by deleteContactViewModel.deleteContactState.collectAsState()
 
-    LaunchedEffect(deleteContactState) {
-        when (deleteContactState) {
-            is DeleteContactState.Success -> {
-                Toast.makeText(context, "You've deleted a contact", Toast.LENGTH_SHORT).show()
-                Log.d("Hello", deleteContactState.toString())
-                contactsViewModel.getAll()
-            }
-            is DeleteContactState.Error -> {
-                val message = (deleteContactState as DeleteContactState.Error).message
-                Toast.makeText(context, "Error while deleting a contact: $message", Toast.LENGTH_LONG).show()
-            }
-            else -> {}
-        }
-    }
-
-    LaunchedEffect(createChatState) {
-        when (createChatState) {
-            is CreateChatQueryState.Success -> {
-                Toast.makeText(context, "You've created a chat", Toast.LENGTH_SHORT).show()
-            }
-            is CreateChatQueryState.Error -> {
-                val message = (createChatState as CreateChatQueryState.Error).message
-                Toast.makeText(context, "Error while creating a chat: $message", Toast.LENGTH_LONG).show()
-            }
-            else -> {}
-        }
-    }
-
-    LaunchedEffect(createContactState) {
-        when (createContactState) {
-            is CreateContactQueryState.Success -> {
-                Toast.makeText(context, "You've created new contact", Toast.LENGTH_SHORT).show()
-                showCreateContactModal = false
-                contactsViewModel.getAll()
-            }
-            is CreateContactQueryState.Error -> {
-                val message = (createContactState as CreateContactQueryState.Error).message
-                Toast.makeText(context, "Error while creating contact: $message", Toast.LENGTH_SHORT).show()
-            }
-            else -> {}
-        }
-    }
+    // Effects to handle state changes
+    LaunchedEffect(Unit) { contactsViewModel.getAll() }
+    HandleDeleteContactEffect(deleteContactState, contactsViewModel, context)
+    HandleCreateChatEffect(createChatState, context)
+    HandleCreateContactEffect(createContactState, contactsViewModel, context) { showCreateContactModal = false }
 
     Scaffold(
-        bottomBar = {
-            NavBar(
-                navController = navController,
-                activeItem = NavBarItem.Contacts
-            )
-        },
+        bottomBar = { NavBar(navController = navController, activeItem = NavBarItem.Contacts) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreateContactModal = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
@@ -116,67 +70,145 @@ fun ContactsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
         ) {
-            when (contactsQueryState) {
-                ContactsQueryState.Loading -> {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-                is ContactsQueryState.Error -> {
-                    Placeholder(
-                        icon = Icons.Outlined.Error,
-                        color = MaterialTheme.colorScheme.error,
-                        message = (contactsQueryState as ContactsQueryState.Error).message
-                    )
-                }
-                ContactsQueryState.Success -> {
-                    if (contacts.isEmpty()) {
-                        Placeholder(
-                            icon = Icons.Outlined.PersonOutline,
-                            color = MaterialTheme.colorScheme.primary,
-                            message = "You've not added contacts yet. Let's start!"
-                        )
-                    } else {
-                        LazyColumn {
-                            items(contacts) { contact ->
-                                Contact(
-                                    contact = contact,
-                                    onDelete = { deleteContactViewModel.deleteContact(contact.ID) },
-                                    onCreateChat = { createChatViewModel.createChat(
-                                        chatName = "Chat with ${contact.UserName}",
-                                        isDirect = true,
-                                        members = listOf(contact.ID)
-                                    ) },
-                                    isCreatingChat = createChatState == CreateChatQueryState.Loading,
-                                    isDeleting = deletingContacts.contains(contact.ID),
-                                )
-
-                                HorizontalDivider()
-                            }
-                        }
-
-                    }
-                }
-                else -> {
-                    Placeholder(
-                        icon = Icons.Outlined.PersonOutline,
-                        color = MaterialTheme.colorScheme.primary,
-                        message = "You've not added contacts yet. Let's start!"
-                    )
-                }
-            }
+            ContactListContent(
+                contactsQueryState = contactsQueryState,
+                contacts = contacts,
+                createChatState = createChatState,
+                deletingContacts = deletingContacts,
+                deleteContactViewModel = deleteContactViewModel,
+                createChatViewModel = createChatViewModel
+            )
 
             if (showCreateContactModal) {
                 CreateContactModal(
                     isLoading = createContactState == CreateContactQueryState.Loading,
-                    onCreateContact = { contactLogin ->
-                        createContactViewModel.createContact(contactLogin)
-                    },
-                    onDismissRequest = {
-                        showCreateContactModal = false
-                    }
+                    onCreateContact = { contactLogin -> createContactViewModel.createContact(contactLogin) },
+                    onDismissRequest = { showCreateContactModal = false }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun HandleDeleteContactEffect(
+    deleteContactState: DeleteContactState,
+    contactsViewModel: ContactsViewModel,
+    context: Context
+) {
+    LaunchedEffect(deleteContactState) {
+        when (deleteContactState) {
+            is DeleteContactState.Success -> {
+                Toast.makeText(context, "You've deleted a contact", Toast.LENGTH_SHORT).show()
+                contactsViewModel.getAll()
+            }
+            is DeleteContactState.Error -> {
+                val message = deleteContactState.message
+                Toast.makeText(context, "Error while deleting a contact: $message", Toast.LENGTH_LONG).show()
+            }
+            else -> {}
+        }
+    }
+}
+
+@Composable
+private fun HandleCreateChatEffect(
+    createChatState: CreateChatQueryState,
+    context: Context
+) {
+    LaunchedEffect(createChatState) {
+        when (createChatState) {
+            is CreateChatQueryState.Success -> {
+                Toast.makeText(context, "You've created a chat", Toast.LENGTH_SHORT).show()
+            }
+            is CreateChatQueryState.Error -> {
+                val message = createChatState.message
+                Toast.makeText(context, "Error while creating a chat: $message", Toast.LENGTH_LONG).show()
+            }
+            else -> {}
+        }
+    }
+}
+
+@Composable
+private fun HandleCreateContactEffect(
+    createContactState: CreateContactQueryState,
+    contactsViewModel: ContactsViewModel,
+    context: Context,
+    onModalDismiss: () -> Unit
+) {
+    LaunchedEffect(createContactState) {
+        when (createContactState) {
+            is CreateContactQueryState.Success -> {
+                Toast.makeText(context, "You've created new contact", Toast.LENGTH_SHORT).show()
+                onModalDismiss()
+                contactsViewModel.getAll()
+            }
+            is CreateContactQueryState.Error -> {
+                val message = createContactState.message
+                Toast.makeText(context, "Error while creating contact: $message", Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
+    }
+}
+
+@Composable
+private fun ContactListContent(
+    contactsQueryState: ContactsQueryState,
+    contacts: List<UserInfo>,
+    createChatState: CreateChatQueryState,
+    deletingContacts: List<Int>,
+    deleteContactViewModel: DeleteContactViewModel,
+    createChatViewModel: CreateChatViewModel
+) {
+    when (contactsQueryState) {
+        ContactsQueryState.Loading -> {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+        is ContactsQueryState.Error -> {
+            Placeholder(
+                icon = Icons.Outlined.Error,
+                color = MaterialTheme.colorScheme.error,
+                message = contactsQueryState.message
+            )
+        }
+        ContactsQueryState.Success -> {
+            if (contacts.isEmpty()) {
+                Placeholder(
+                    icon = Icons.Outlined.PersonOutline,
+                    color = MaterialTheme.colorScheme.primary,
+                    message = "You've not added contacts yet. Let's start!"
+                )
+            } else {
+                LazyColumn {
+                    items(contacts) { contact ->
+                        Contact(
+                            contact = contact,
+                            onDelete = { deleteContactViewModel.deleteContact(contact.ID) },
+                            onCreateChat = {
+                                createChatViewModel.createChat(
+                                    chatName = "Chat with ${contact.UserName}",
+                                    isDirect = true,
+                                    members = listOf(contact.ID)
+                                )
+                            },
+                            isCreatingChat = createChatState == CreateChatQueryState.Loading,
+                            isDeleting = deletingContacts.contains(contact.ID),
+                        )
+                        HorizontalDivider()
+                    }
+                }
+            }
+        }
+        else -> {
+            Placeholder(
+                icon = Icons.Outlined.PersonOutline,
+                color = MaterialTheme.colorScheme.primary,
+                message = "You've not added contacts yet. Let's start!"
+            )
         }
     }
 }
